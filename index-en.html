@@ -24,7 +24,7 @@
           Uses a fixed Tier 3 (7×5) module bay. Assumes every enabled normally obtainable module is available; inventory is not scanned.
         </p>
       </div>
-      <div class="hero-badge">v1.2</div>
+      <div class="hero-badge">v1.3</div>
     </header>
 
     <section class="panel">
@@ -175,7 +175,7 @@
       </label>
 
       <p class="microcopy">
-        With At-least or power hard targets, the optimizer automatically uses Beam Search, preserving multiple P/E/Q trade-off paths and enumerating legal placements.
+        With At-least or power hard targets, the optimizer first finds the minimum feasible module depth, then widens the search across alternative layouts at the same module count and runs fixed-count all-position replacement/reposition refinement.
         Compute budget expands the search frontier and candidate coverage; pure Maximize tasks still use multi-start stochastic search.
         Minimize module count requires at least one hard target.
       </p>

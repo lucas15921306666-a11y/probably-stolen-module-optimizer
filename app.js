@@ -1228,7 +1228,29 @@
         $("progressBar").style.width = pct+"%";
         $("progressPct").textContent = pct+"%";
 
-        if (meta.algorithm === "beam" && meta.depth) {
+        if (meta.algorithm === "beam" && meta.phase === "sameDepthBeam") {
+          const bestText = best
+            ? L(
+                ` · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`,
+                ` · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
+              )
+            : "";
+          $("progressLabel").textContent = L(
+            `同层扩大搜索 ${meta.depth}/${meta.targetDepth} · 前沿 ${meta.frontier} · 候选 ${meta.candidatePool}${bestText}`,
+            `Same-depth widened search ${meta.depth}/${meta.targetDepth} · frontier ${meta.frontier} · candidates ${meta.candidatePool}${bestText}`
+          );
+        } else if (meta.algorithm === "beam" && meta.phase === "refine") {
+          const bestText = best
+            ? L(
+                ` · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`,
+                ` · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
+              )
+            : "";
+          $("progressLabel").textContent = L(
+            `同层精修 · 种子 ${meta.seed}/${meta.seeds} · 第 ${meta.round}/${meta.rounds} 轮${bestText}`,
+            `Same-depth refinement · seed ${meta.seed}/${meta.seeds} · round ${meta.round}/${meta.rounds}${bestText}`
+          );
+        } else if (meta.algorithm === "beam" && meta.depth) {
           const bestText = best
             ? L(
                 ` · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`,
@@ -1268,8 +1290,8 @@
           results[0]) {
         const n = results[0].modules.length;
         $("progressLabel").textContent = L(
-          `完成 · 在 ${n} 个模组层找到可行解，后续更深层无需搜索`,
-          `Complete · feasible solution found at ${n} modules; deeper levels were not needed`
+          `完成 · ${n} 个模组层已完成扩大搜索与同层精修`,
+          `Complete · widened search and same-depth refinement finished at ${n} modules`
         );
       } else {
         $("progressLabel").textContent = L("搜索完成","Search complete");
@@ -1282,8 +1304,8 @@
         : "";
       const algoText = hasHardTargets
         ? L(
-            " 本次使用组合 Beam Search：保留多条 P/E/Q 权衡路径并枚举合法摆位。",
-            " This run used Beam Search, preserving multiple P/E/Q trade-off paths and enumerating legal placements."
+            " 本次使用三阶段组合搜索：发现最少模组层 → 扩大同层 Beam Search → 固定模组数的全位置替换/重排精修。",
+            " This run used a three-stage search: discover the minimum-module depth → widened same-depth Beam Search → fixed-count all-position replacement/reposition refinement."
           )
         : L(" 本次使用多起点随机 + 局部搜索。"," This run used multi-start stochastic search plus local search.");
       $("statusText").textContent =

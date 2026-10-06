@@ -262,3 +262,23 @@ v0.5 开始加入“手动调整布局”功能，第一阶段只允许调整词
 - Added a complete English UI at `index-en.html`.
 - Chinese and English pages share the same optimizer, browser localStorage saves, JSON import/export, and manual layout editor.
 - Dynamic content is localized too: module names, shapes, effects, status messages, result cards, saved solutions, manual editing, and rules.
+
+
+## v1.3 — Same-depth global refinement
+
+Hard-target search now has three phases:
+
+1. **Discovery Beam Search**
+   - Finds the first feasible module-count depth.
+
+2. **Widened same-depth Beam Search**
+   - Re-runs the search globally from the empty board to that same module count.
+   - Uses a wider frontier and a broader candidate pool.
+   - Revisits branches that the discovery beam may have pruned.
+
+3. **Fixed-count refinement**
+   - Keeps the module count unchanged.
+   - For several strong/diverse seeds, removes one module at a time and exhaustively tries every candidate in the refinement pool at every legal rotation and position.
+   - Repeats for multiple rounds depending on search intensity / compute budget.
+
+This greatly improves the chance of finding a stronger layout at the same module count. It is still not a mathematical proof of the global optimum because Beam Search and the candidate pool are pruned. An exact proof would require a full exact solver / branch-and-bound / CP-SAT mode.

@@ -752,9 +752,9 @@ window.PS_OPT = (() => {
   }
 
   const BEAM_QUALITY = {
-    fast:     { beamWidth: 10, candidateLimit: 48,  maxDepth: 11 },
-    balanced: { beamWidth: 18, candidateLimit: 78,  maxDepth: 12 },
-    deep:     { beamWidth: 30, candidateLimit: 120, maxDepth: 14 }
+    fast:     { beamWidth: 10, candidateLimit: 48,  maxDepth: 11, refineSeeds: 4, refineRounds: 1 },
+    balanced: { beamWidth: 18, candidateLimit: 78,  maxDepth: 12, refineSeeds: 7, refineRounds: 2 },
+    deep:     { beamWidth: 30, candidateLimit: 120, maxDepth: 14, refineSeeds: 10, refineRounds: 3 }
   };
 
   function beamConfig(settings) {
@@ -766,8 +766,215 @@ window.PS_OPT = (() => {
       // Hard caps keep "very high" search budgets from freezing the browser.
       beamWidth: Math.min(44,Math.max(8,Math.round(base.beamWidth*factor))),
       candidateLimit: Math.min(160,Math.max(36,Math.round(base.candidateLimit*factor))),
-      maxDepth: base.maxDepth
+      maxDepth: base.maxDepth,
+      refineSeeds: Math.min(14,Math.max(3,Math.round(base.refineSeeds*factor))),
+      refineRounds: Math.min(4,Math.max(1,Math.round(base.refineRounds*factor)))
     };
+  }
+
+
+
+  async function fixedDepthBeamRefine(targetDepth,candidates,settings,cfg,onProgress=()=>{}) {
+    if (!targetDepth || targetDepth < 1) return [];
+
+    const refineCfg = {
+      ...cfg,
+      beamWidth: Math.min(72,Math.max(cfg.beamWidth+6,Math.round(cfg.beamWidth*1.9))),
+      candidateLimit: Math.min(180,Math.max(cfg.candidateLimit+12,Math.round(cfg.candidateLimit*1.4)))
+    };
+
+    const pool = beamCandidatePool(candidates,settings,refineCfg);
+    pool.forEach(c => allShapePlacements(c.shapeId));
+
+    const empty = {
+      modules: [],
+      mask: 0n,
+      evaluation: evaluateLayout([],settings),
+      signature: ""
+    };
+    let beam = [empty];
+    const feasible = [];
+
+    for (let depth=1; depth<=targetDepth; depth++) {
+      const expanded = [];
+      const seen = new Set();
+
+      for (const state of beam) {
+        for (const candidate of pool) {
+          for (const placement of allShapePlacements(candidate.shapeId)) {
+            if ((state.mask & placement.mask) !== 0n) continue;
+
+            const modules = state.modules.concat([{
+              candidate,
+              cells: placement.cells,
+              orientation: placement.orientation
+            }]);
+
+            const signature = stateSignatureFast(modules);
+            if (seen.has(signature)) continue;
+            seen.add(signature);
+
+            const ev = evaluateLayout(modules,settings);
+            const rec = {
+              modules,
+              mask: state.mask | placement.mask,
+              evaluation: ev,
+              signature,
+              composition: compositionSignature(modules)
+            };
+
+            if (depth === targetDepth) {
+              if (ev.feasible) {
+                insertBest(feasible,rec,Math.max(settings.resultCount*24,160));
+              }
+            } else {
+              expanded.push(rec);
+            }
+          }
+        }
+      }
+
+      onProgress(
+        depth/targetDepth,
+        feasible[0] || (expanded.length ? expanded[0] : null),
+        {
+          algorithm: "beam",
+          phase: "sameDepthBeam",
+          depth,
+          targetDepth,
+          frontier: beam.length,
+          candidatePool: pool.length,
+          expanded: depth===targetDepth ? feasible.length : expanded.length
+        }
+      );
+
+      if (depth === targetDepth) break;
+      if (!expanded.length) break;
+
+      beam = selectBeam(expanded,settings,refineCfg);
+      await new Promise(resolve => setTimeout(resolve,0));
+    }
+
+    return feasible.sort((a,b)=>b.evaluation.score-a.evaluation.score);
+  }
+
+  function diverseSeeds(records,limit) {
+    const sorted = [...records].sort((a,b)=>b.evaluation.score-a.evaluation.score);
+    const out = [];
+    const seenComp = new Set();
+
+    // First preserve composition diversity.
+    for (const r of sorted) {
+      if (seenComp.has(r.composition)) continue;
+      seenComp.add(r.composition);
+      out.push(r);
+      if (out.length >= limit) return out;
+    }
+
+    // Then fill with the strongest remaining layouts.
+    for (const r of sorted) {
+      if (out.includes(r)) continue;
+      out.push(r);
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
+  function fixedDepthRecord(modules,settings) {
+    const ev = evaluateLayout(modules,settings);
+    return {
+      modules,
+      mask: modulesMask(modules),
+      evaluation: ev,
+      signature: stateSignatureFast(modules),
+      composition: compositionSignature(modules)
+    };
+  }
+
+  async function refineSameDepth(feasibleRecords,candidates,settings,cfg,onProgress=()=>{}) {
+    if (!feasibleRecords.length) return [];
+
+    // Use a wider pool than discovery.  Discovery finds the minimum module
+    // depth; refinement then searches much more aggressively INSIDE that same
+    // depth without ever adding another module.
+    const widerCfg = {
+      ...cfg,
+      candidateLimit: Math.min(180,Math.max(cfg.candidateLimit,Math.round(cfg.candidateLimit*1.35)))
+    };
+    const pool = beamCandidatePool(candidates,settings,widerCfg);
+    pool.forEach(c => allShapePlacements(c.shapeId));
+
+    const archive = [];
+    feasibleRecords.forEach(r => insertBest(archive,r,Math.max(settings.resultCount*20,120)));
+
+    const seeds = diverseSeeds(feasibleRecords,cfg.refineSeeds);
+    const totalSteps = Math.max(1,seeds.length*cfg.refineRounds);
+    let doneSteps = 0;
+
+    for (let si=0; si<seeds.length; si++) {
+      let current = seeds[si];
+
+      for (let round=0; round<cfg.refineRounds; round++) {
+        let best = current;
+        let improved = false;
+
+        // Exhaustive 1-slot replacement/reposition neighborhood:
+        // remove one module, then try every candidate in the refinement pool
+        // at every legal rotation/position. Module count stays constant.
+        for (let removeIndex=0; removeIndex<current.modules.length; removeIndex++) {
+          const base = current.modules.filter((_,i)=>i!==removeIndex);
+          const baseMask = modulesMask(base);
+
+          for (const candidate of pool) {
+            for (const placement of allShapePlacements(candidate.shapeId)) {
+              if ((baseMask & placement.mask) !== 0n) continue;
+
+              const modules = base.concat([{
+                candidate,
+                cells: placement.cells,
+                orientation: placement.orientation
+              }]);
+
+              const rec = fixedDepthRecord(modules,settings);
+              if (!rec.evaluation.feasible) continue;
+
+              insertBest(archive,rec,Math.max(settings.resultCount*20,120));
+
+              if (rec.evaluation.score > best.evaluation.score + 1e-9) {
+                best = rec;
+                improved = true;
+              }
+            }
+          }
+        }
+
+        current = best;
+        insertBest(archive,current,Math.max(settings.resultCount*20,120));
+
+        doneSteps++;
+        onProgress(
+          doneSteps/totalSteps,
+          archive[0] || current,
+          {
+            algorithm: "beam",
+            phase: "refine",
+            seed: si+1,
+            seeds: seeds.length,
+            round: round+1,
+            rounds: cfg.refineRounds,
+            moduleDepth: current.modules.length,
+            candidatePool: pool.length
+          }
+        );
+
+        await new Promise(resolve => setTimeout(resolve,0));
+
+        // A full global 1-swap pass found no improvement from this seed.
+        if (!improved) break;
+      }
+    }
+
+    return archive.sort((a,b)=>b.evaluation.score-a.evaluation.score);
   }
 
   async function beamOptimize(settings,candidates,onProgress=()=>{}) {
@@ -789,6 +996,7 @@ window.PS_OPT = (() => {
     }];
 
     const bestAny = [];
+    const feasibleAny = [];
     let firstFeasibleDepth = null;
     const feasibleAtFirstDepth = [];
 
@@ -826,6 +1034,7 @@ window.PS_OPT = (() => {
             insertBest(bestAny,rec,Math.max(settings.resultCount*8,48));
 
             if (ev.feasible) {
+              insertBest(feasibleAny,rec,Math.max(settings.resultCount*16,96));
               if (firstFeasibleDepth === null) firstFeasibleDepth = depth;
               if (depth === firstFeasibleDepth) {
                 insertBest(feasibleAtFirstDepth,rec,Math.max(settings.resultCount*12,64));
@@ -838,10 +1047,11 @@ window.PS_OPT = (() => {
       }
 
       onProgress(
-        depth/cfg.maxDepth,
-        feasibleAtFirstDepth[0] || bestAny[0] || null,
+        0.45*(depth/cfg.maxDepth),
+        feasibleAtFirstDepth[0] || feasibleAny[0] || bestAny[0] || null,
         {
           algorithm: "beam",
+          phase: "discover",
           depth,
           maxDepth: cfg.maxDepth,
           frontier: beam.length,
@@ -865,7 +1075,54 @@ window.PS_OPT = (() => {
       await new Promise(resolve => setTimeout(resolve,0));
     }
 
-    let source = feasibleAtFirstDepth.length ? feasibleAtFirstDepth : bestAny;
+    let source;
+
+    const refineBase = settings.minimizeModules
+      ? feasibleAtFirstDepth
+      : feasibleAny;
+
+    if (refineBase.length) {
+      const targetDepth = settings.minimizeModules
+        ? firstFeasibleDepth
+        : Math.min(...refineBase.map(r => r.modules.length));
+
+      // Phase 2: rerun a wider beam globally up to the SAME module-count depth.
+      // This revisits earlier branches that the discovery beam may have pruned.
+      const sameDepthGlobal = await fixedDepthBeamRefine(
+        targetDepth,
+        candidates,
+        settings,
+        cfg,
+        (fraction,best,meta) => onProgress(
+          0.45 + fraction*0.35,
+          best,
+          meta
+        )
+      );
+
+      const combined = [];
+      [...refineBase,...sameDepthGlobal].forEach(r =>
+        insertBest(combined,r,Math.max(settings.resultCount*24,160))
+      );
+
+      // Phase 3: exact one-slot replacement/reposition refinement at fixed count.
+      const refined = await refineSameDepth(
+        combined,
+        candidates,
+        settings,
+        cfg,
+        (fraction,best,meta) => onProgress(
+          0.80 + fraction*0.20,
+          best,
+          meta
+        )
+      );
+
+      source = refined.length ? refined : combined;
+    } else {
+      source = bestAny;
+    }
+
     source = [...source].sort((a,b)=>b.evaluation.score-a.evaluation.score);
 
     const final = [];
