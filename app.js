@@ -35,6 +35,89 @@
   const addModuleBtn = $("addModuleBtn");
   const manualEditorHint = $("manualEditorHint");
   const SAVED_KEY = "probablyStolenOptimizer.savedSolutions.v1";
+  const IS_EN = document.documentElement.lang.toLowerCase().startsWith("en");
+  const L = (zh,en) => IS_EN ? en : zh;
+
+  const MODULE_EN = {
+    performance: "Performance Module",
+    efficiency: "Efficiency Module",
+    quality: "Quality Module",
+    overclock: "Overclock Module",
+    eco: "Eco Module",
+    refinement: "Refinement Module",
+    streamlining: "Streamlining Module",
+    neural: "Capped Neural Core",
+    nodeSmall: "Small Node",
+    nodeMedium: "Medium Node"
+  };
+
+  const SHAPE_EN = {
+    square4: "Square",
+    l3: "Notched (Reverse-L)",
+    t4: "Vertical Bar",
+    l4: "Horizontal Bar (Reverse-L)",
+    p5: "P-shape",
+    u5: "U-shape",
+    node1: "Small Node",
+    node2: "Medium Node"
+  };
+
+  const EFFECT_EN = {
+    premium: "Premium",
+    inferior: "Inferior",
+    overcharged: "Overcharged",
+    degrading: "Degrading",
+    learning: "Learning Algorithm",
+    negativeFeedback: "Negative Feedback",
+    receiver: "Receiver",
+    topMount: "Top Mount",
+    sideMount: "Side Mount"
+  };
+
+  const EFFECT_NOTE_EN = {
+    premium: "Base stats ×1.2",
+    inferior: "Base stats ×0.8",
+    overcharged: "Base stats ×2; permanent failure risk",
+    degrading: "Currently evaluated as fresh state ×2",
+    learning: "Currently evaluated at max growth: positive stats ×2",
+    negativeFeedback: "Self ×1.25; absorbs 25% of adjacent negative stats",
+    receiver: "+10% per adjacent Node",
+    topMount: "Self ×1.2 when touching the top edge",
+    sideMount: "Self ×1.2 when touching the left edge"
+  };
+
+  const EFFECT_SHORT_EN = {
+    premium: "Pr",
+    inferior: "Inf",
+    overcharged: "OC",
+    degrading: "Deg",
+    learning: "LA",
+    negativeFeedback: "NF",
+    receiver: "Rx",
+    topMount: "Top",
+    sideMount: "Side"
+  };
+
+  function moduleName(id) {
+    return IS_EN ? (MODULE_EN[id] || id) : (MODULES[id]?.name || id);
+  }
+
+  function shapeName(id) {
+    return IS_EN ? (SHAPE_EN[id] || id) : (SHAPES[id]?.name || id);
+  }
+
+  function effectName(id) {
+    return IS_EN ? (EFFECT_EN[id] || id) : (EFFECTS[id]?.name || id);
+  }
+
+  function effectNote(id) {
+    return IS_EN ? (EFFECT_NOTE_EN[id] || "") : (EFFECTS[id]?.note || "");
+  }
+
+  function effectShort(id) {
+    return IS_EN ? (EFFECT_SHORT_EN[id] || id) : (EFFECTS[id]?.short || id);
+  }
+
   let lastResults = [];
   let selectedIndex = -1;
   let allCandidateMap = null;
@@ -84,8 +167,10 @@
       label.innerHTML = `
         <input type="checkbox" data-module="${id}" checked>
         <span>
-          ${m.name}
-          <small class="check-meta">${m.kind === "node" ? "Support Node 固有词条" : m.variants.length + " 种形态"}</small>
+          ${moduleName(id)}
+          <small class="check-meta">${m.kind === "node"
+            ? L("Support Node 固有词条","Built-in Support Node effect")
+            : L(`${m.variants.length} 种形态`, `${m.variants.length} shapes`)}</small>
         </span>`;
       moduleChecks.appendChild(label);
     });
@@ -99,8 +184,8 @@
       label.innerHTML = `
         <input type="checkbox" data-effect="${id}" checked>
         <span>
-          ${e.name}
-          <small class="check-meta">${e.note}</small>
+          ${effectName(id)}
+          <small class="check-meta">${effectNote(id)}</small>
         </span>`;
       effectChecks.appendChild(label);
     });
@@ -140,11 +225,11 @@
   }
 
   function validate(settings) {
-    if (!settings.enabledModules.length) return "至少启用一种模组。";
+    if (!settings.enabledModules.length) return L("至少启用一种模组。","Enable at least one module.");
     const hasGoal =
       ["p","e","q"].some(k => settings.targets[k].mode !== "ignore") ||
       settings.usePowerTarget;
-    if (!hasGoal) return "至少设置一个目标（P / E / Q / 耗电）。";
+    if (!hasGoal) return L("至少设置一个目标（P / E / Q / 耗电）。","Set at least one target (P / E / Q / power).");
     return "";
   }
 
@@ -154,7 +239,8 @@
 
     if (!results.length) {
       resultsList.className = "results-list empty-state";
-      resultsList.textContent = "没有找到可用方案。尝试启用更多模组或降低约束。";
+      resultsList.textContent = L("没有找到可用方案。尝试启用更多模组或降低约束。",
+        "No usable solution found. Try enabling more modules or relaxing constraints.");
       clearPreview();
       return;
     }
@@ -170,9 +256,9 @@
       const occupied = r.modules.reduce((s,m)=>s+m.candidate.area,0);
       card.innerHTML = `
         <div class="result-top">
-          <span class="result-rank">方案 ${i+1}</span>
+          <span class="result-rank">${L(`方案 ${i+1}`, `Solution ${i+1}`)}</span>
           <span class="${ev.feasible ? "feasible" : "infeasible"}">
-            ${ev.feasible ? "✓ 满足硬目标" : "△ 最接近目标"}
+            ${ev.feasible ? L("✓ 满足硬目标","✓ Meets hard targets") : L("△ 最接近目标","△ Closest to targets")}
           </span>
         </div>
         <div class="stat-row">
@@ -182,9 +268,9 @@
           <div class="stat-chip"><span>POWER</span><strong>${ev.power}</strong></div>
         </div>
         <div class="result-foot">
-          <span>${r.modules.length} 个模组</span>
-          <span>${occupied}/35 格</span>
-          ${ev.unstableCount ? `<span>⚠ ${ev.unstableCount} 个不稳定词条模组</span>` : ""}
+          <span>${L(`${r.modules.length} 个模组`, `${r.modules.length} modules`)}</span>
+          <span>${L(`${occupied}/35 格`, `${occupied}/35 cells`)}</span>
+          ${ev.unstableCount ? `<span>⚠ ${L(`${ev.unstableCount} 个不稳定词条模组`, `${ev.unstableCount} unstable-effect modules`)}</span>` : ""}
         </div>`;
       card.addEventListener("click",()=>selectResult(i,settings));
       resultsList.appendChild(card);
@@ -195,13 +281,13 @@
 
   function clearPreview() {
     boardEl.innerHTML = "";
-    solutionSummary.textContent = "选择一个结果后显示详细数值。";
+    solutionSummary.textContent = L("选择一个结果后显示详细数值。","Select a result to view detailed stats.");
     moduleDetail.innerHTML = "";
-    previewTitle.textContent = "未选择方案";
-    manualModuleSelect.innerHTML = '<option value="">请先选择方案</option>';
+    previewTitle.textContent = L("未选择方案","No solution selected");
+    manualModuleSelect.innerHTML = `<option value="">${L("请先选择方案","Select a solution first")}</option>`;
     manualModuleSelect.disabled = true;
-    manualEffect1.innerHTML = '<option value="">无</option>';
-    manualEffect2.innerHTML = '<option value="">无</option>';
+    manualEffect1.innerHTML = `<option value="">${L("无","None")}</option>`;
+    manualEffect2.innerHTML = `<option value="">${L("无","None")}</option>`;
     manualEffect1.disabled = true;
     manualEffect2.disabled = true;
     applyManualEffectsBtn.disabled = true;
@@ -209,7 +295,10 @@
     restoreLayoutBtn.disabled = true;
     setLayoutButtonsDisabled(true);
     addModuleBtn.disabled = true;
-    manualEditorHint.textContent = "先选择一个方案。Node 只有 Support Node 固有词条，不能手动修改随机词条。";
+    manualEditorHint.textContent = L(
+      "先选择一个方案。Node 只有 Support Node 固有词条，不能手动修改随机词条。",
+      "Select a solution first. Nodes only have the built-in Support Node effect and cannot receive random effects."
+    );
   }
 
   function selectResult(i,settings) {
@@ -227,7 +316,7 @@
   function renderPreview(result,index,settings) {
     const ev = result.evaluation;
     boardEl.innerHTML = "";
-    previewTitle.textContent = `方案 ${index+1}`;
+    previewTitle.textContent = L(`方案 ${index+1}`, `Solution ${index+1}`);
 
     result.modules.forEach((m,mi) => {
       const wrap = document.createElement("div");
@@ -236,7 +325,7 @@
       if (Number(manualModuleSelect.value) === mi) wrap.classList.add("selected");
       const eff = m.candidate.effects
         .filter(x=>x!=="supportNode")
-        .map(x=>EFFECTS[x]?.short || "")
+        .map(x=>effectShort(x) || "")
         .join("");
       m.cells.forEach(([x,y]) => {
         const cell = document.createElement("div");
@@ -258,11 +347,11 @@
         <div class="big-stat"><span>Quality</span><strong>${fmtSigned(ev.total.q)}</strong></div>
       </div>
       <div class="summary-list">
-        <div class="summary-line"><span>估算耗电</span><strong>${ev.power}</strong></div>
-        <div class="summary-line"><span>硬目标</span><strong>${ev.feasible ? "满足" : "未完全满足"}</strong></div>
-        <div class="summary-line"><span>模组数量</span><strong>${result.modules.length}</strong></div>
-        <div class="summary-line"><span>占用格数</span><strong>${occupied} / 35</strong></div>
-        <div class="summary-line"><span>过载 / 退化模组</span><strong>${ev.unstableCount}</strong></div>
+        <div class="summary-line"><span>${L("估算耗电","Estimated power")}</span><strong>${ev.power}</strong></div>
+        <div class="summary-line"><span>${L("硬目标","Hard targets")}</span><strong>${ev.feasible ? L("满足","Met") : L("未完全满足","Not fully met")}</strong></div>
+        <div class="summary-line"><span>${L("模组数量","Module count")}</span><strong>${result.modules.length}</strong></div>
+        <div class="summary-line"><span>${L("占用格数","Occupied cells")}</span><strong>${occupied} / 35</strong></div>
+        <div class="summary-line"><span>${L("过载 / 退化模组","Overcharged / Degrading modules")}</span><strong>${ev.unstableCount}</strong></div>
       </div>`;
 
     const rows = result.modules.map((m,mi) => {
@@ -270,15 +359,15 @@
       const s = ev.finalStats[mi];
       const effects = c.kind==="node"
         ? `<span class="effect-tag">Support Node</span>`
-        : (c.effects.length ? c.effects.map(e=>`<span class="effect-tag">${EFFECTS[e].name.split(" / ")[0]}</span>`).join("") : "—");
+        : (c.effects.length ? c.effects.map(e=>`<span class="effect-tag">${effectName(e)}</span>`).join("") : "—");
       const adj = [...ev.adjacency[mi]].map(j=>"#"+(j+1)).join(", ") || "—";
       const top = m.cells.some(([x,y])=>y===0);
       const side = m.cells.some(([x,y])=>x===0);
       return `
         <tr>
           <td>#${mi+1}</td>
-          <td>${MODULES[c.typeId].name}</td>
-          <td>${SHAPES[c.shapeId].name}</td>
+          <td>${moduleName(c.typeId)}</td>
+          <td>${shapeName(c.shapeId)}</td>
           <td>${effects}</td>
           <td>${fmtSigned(s.p)}</td>
           <td>${fmtSigned(s.e)}</td>
@@ -292,8 +381,8 @@
       <table class="module-table">
         <thead>
           <tr>
-            <th>#</th><th>模组</th><th>形状</th><th>词条</th>
-            <th>P</th><th>E</th><th>Q</th><th>相邻</th><th>边缘</th>
+            <th>#</th><th>${L("模组","Module")}</th><th>${L("形状","Shape")}</th><th>${L("词条","Effects")}</th>
+            <th>P</th><th>E</th><th>Q</th><th>${L("相邻","Adjacent")}</th><th>${L("边缘","Edge")}</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -333,7 +422,10 @@
 
     return {
       id: `saved-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-      name: saveNameInput.value.trim() || `方案 ${new Date().toLocaleString()}`,
+      name: saveNameInput.value.trim() || L(
+        `方案 ${new Date().toLocaleString("zh-CN")}`,
+        `Solution ${new Date().toLocaleString("en-US")}`
+      ),
       savedAt: new Date().toISOString(),
       settings: readSettings(),
       evaluation: {
@@ -417,7 +509,7 @@
   function exportSavedSolutions() {
     const items = getSavedSolutions();
     if (!items.length) {
-      $("statusText").textContent = "没有可导出的保存方案。";
+      $("statusText").textContent = L("没有可导出的保存方案。","There are no saved solutions to export.");
       return;
     }
 
@@ -440,7 +532,7 @@
     a.remove();
     URL.revokeObjectURL(url);
 
-    $("statusText").textContent = `已导出 ${items.length} 个保存方案。`;
+    $("statusText").textContent = L(`已导出 ${items.length} 个保存方案。`, `Exported ${items.length} saved solutions.`);
   }
 
   function normalizeImportedSolutions(parsed) {
@@ -448,7 +540,7 @@
     if (parsed && parsed.format === "probably-stolen-module-optimizer-saves" &&
         Array.isArray(parsed.solutions)) return parsed.solutions;
     if (parsed && Array.isArray(parsed.solutions)) return parsed.solutions;
-    throw new Error("这不是有效的 Probably Stolen 优化器保存文件。");
+    throw new Error(L("这不是有效的 Probably Stolen 优化器保存文件。","This is not a valid Probably Stolen optimizer save file."));
   }
 
   async function importSavedSolutions(file) {
@@ -473,7 +565,7 @@
         const copy = {
           ...item,
           id,
-          name: item.name || "导入方案",
+          name: item.name || L("导入方案","Imported solution"),
           savedAt: item.savedAt || new Date().toISOString()
         };
         byId.set(id, copy);
@@ -486,10 +578,13 @@
 
       setSavedSolutions(merged);
       renderSavedSolutions();
-      $("statusText").textContent = `已导入 ${added} 个方案；当前共保存 ${merged.length} 个。`;
+      $("statusText").textContent = L(
+        `已导入 ${added} 个方案；当前共保存 ${merged.length} 个。`,
+        `Imported ${added} solutions; ${merged.length} are now saved.`
+      );
     } catch (e) {
       console.error(e);
-      $("statusText").textContent = "导入失败：" + e.message;
+      $("statusText").textContent = L("导入失败：","Import failed: ") + e.message;
     } finally {
       importSavedFile.value = "";
     }
@@ -500,7 +595,7 @@
 
     if (!items.length) {
       savedList.className = "saved-list empty-state";
-      savedList.textContent = "还没有保存的方案。";
+      savedList.textContent = L("还没有保存的方案。","No saved solutions yet.");
       return;
     }
 
@@ -510,13 +605,13 @@
     items.forEach((item,index) => {
       const ev = item.evaluation || {};
       const total = ev.total || {p:0,e:0,q:0};
-      const when = item.savedAt ? new Date(item.savedAt).toLocaleString() : "";
+      const when = item.savedAt ? new Date(item.savedAt).toLocaleString(IS_EN ? "en-US" : "zh-CN") : "";
       const card = document.createElement("div");
       card.className = "saved-card";
       card.innerHTML = `
         <div>
-          <div class="saved-title">${escapeHtml(item.name || `保存方案 ${index+1}`)}</div>
-          <div class="saved-meta">${when} · ${(item.modules || []).length} 个模组</div>
+          <div class="saved-title">${escapeHtml(item.name || L(`保存方案 ${index+1}`, `Saved solution ${index+1}`))}</div>
+          <div class="saved-meta">${when} · ${L(`${(item.modules || []).length} 个模组`, `${(item.modules || []).length} modules`)}</div>
         </div>
         <div class="saved-stats">
           <div class="saved-stat"><span>P</span><strong>${fmtSigned(total.p || 0)}</strong></div>
@@ -525,8 +620,8 @@
           <div class="saved-stat"><span>POWER</span><strong>${ev.power ?? "—"}</strong></div>
         </div>
         <div class="saved-actions">
-          <button type="button" class="mini-button" data-load-saved="${item.id}">载入</button>
-          <button type="button" class="mini-button danger" data-delete-saved="${item.id}">删除</button>
+          <button type="button" class="mini-button" data-load-saved="${item.id}">${L("载入","Load")}</button>
+          <button type="button" class="mini-button danger" data-delete-saved="${item.id}">${L("删除","Delete")}</button>
         </div>`;
       savedList.appendChild(card);
     });
@@ -542,7 +637,7 @@
   function saveCurrentSolution() {
     const snap = currentSnapshot();
     if (!snap) {
-      $("statusText").textContent = "请先计算并选择一个结果，再保存。";
+      $("statusText").textContent = L("请先计算并选择一个结果，再保存。","Calculate and select a result before saving.");
       return;
     }
 
@@ -551,7 +646,7 @@
     setSavedSolutions(items.slice(0,50));
     saveNameInput.value = "";
     renderSavedSolutions();
-    $("statusText").textContent = `已保存：${snap.name}`;
+    $("statusText").textContent = L(`已保存：${snap.name}`, `Saved: ${snap.name}`);
   }
 
   function loadSavedSolution(id) {
@@ -564,8 +659,8 @@
     lastResults = [result];
     selectedIndex = 0;
     renderPreview(result,0,item.settings || readSettings());
-    previewTitle.textContent = `已保存 · ${item.name}`;
-    $("statusText").textContent = `已载入保存方案：${item.name}`;
+    previewTitle.textContent = L(`已保存 · ${item.name}`, `Saved · ${item.name}`);
+    $("statusText").textContent = L(`已载入保存方案：${item.name}`, `Loaded saved solution: ${item.name}`);
 
     document.querySelector(".preview-panel")
       .scrollIntoView({behavior:"smooth",block:"start"});
@@ -602,8 +697,8 @@
   }
 
   function setEffectOptions(select, selectedValue, partnerValue) {
-    const options = [{id:"", name:"无"}];
-    Object.entries(EFFECTS).forEach(([id,e]) => options.push({id,name:e.name}));
+    const options = [{id:"", name:L("无","None")}];
+    Object.entries(EFFECTS).forEach(([id,e]) => options.push({id,name:effectName(id)}));
 
     select.innerHTML = "";
     for (const opt of options) {
@@ -633,7 +728,7 @@
   function syncAddEffectOptions() {
     const m = MODULES[addModuleType.value];
     if (!m || m.kind === "node") {
-      addEffect1.innerHTML = '<option value="">Support Node（固有）</option>';
+      addEffect1.innerHTML = `<option value="">${L("Support Node（固有）","Support Node (built-in)")}</option>`;
       addEffect2.innerHTML = '<option value="">—</option>';
       addEffect1.disabled = true;
       addEffect2.disabled = true;
@@ -654,7 +749,7 @@
     m.variants.forEach(([shapeId]) => {
       const opt = document.createElement("option");
       opt.value = shapeId;
-      opt.textContent = SHAPES[shapeId].name;
+      opt.textContent = shapeName(shapeId);
       addModuleShape.appendChild(opt);
     });
     syncAddEffectOptions();
@@ -665,7 +760,7 @@
     Object.entries(MODULES).forEach(([id,m]) => {
       const opt = document.createElement("option");
       opt.value = id;
-      opt.textContent = m.name;
+      opt.textContent = moduleName(id);
       addModuleType.appendChild(opt);
     });
     refreshAddShapeOptions();
@@ -678,7 +773,7 @@
 
     if (!result.modules.length) {
       const opt = document.createElement("option");
-      opt.textContent = "当前布局没有模组";
+      opt.textContent = L("当前布局没有模组","Current layout has no modules");
       opt.value = "";
       manualModuleSelect.appendChild(opt);
       manualModuleSelect.disabled = true;
@@ -694,8 +789,8 @@
     result.modules.forEach((m,i) => {
       const opt = document.createElement("option");
       opt.value = String(i);
-      const kind = m.candidate.kind === "node" ? "Node" : MODULES[m.candidate.typeId].name;
-      opt.textContent = `#${i+1} · ${kind} · ${SHAPES[m.candidate.shapeId].name}`;
+      const kind = m.candidate.kind === "node" ? "Node" : moduleName(m.candidate.typeId);
+      opt.textContent = `#${i+1} · ${kind} · ${shapeName(m.candidate.shapeId)}`;
       manualModuleSelect.appendChild(opt);
     });
 
@@ -731,13 +826,16 @@
     highlightSelectedModule();
 
     if (c.kind === "node") {
-      manualEffect1.innerHTML = '<option value="">Support Node（固有）</option>';
+      manualEffect1.innerHTML = `<option value="">${L("Support Node（固有）","Support Node (built-in)")}</option>`;
       manualEffect2.innerHTML = '<option value="">—</option>';
       manualEffect1.disabled = true;
       manualEffect2.disabled = true;
       applyManualEffectsBtn.disabled = true;
       manualEditorHint.textContent =
-        `当前 #${mi+1}：${MODULES[c.typeId].name} / ${SHAPES[c.shapeId].name}。Node 可移动、旋转、删除，但不能改随机词条。`;
+        L(
+          `当前 #${mi+1}：${moduleName(c.typeId)} / ${shapeName(c.shapeId)}。Node 可移动、旋转、删除，但不能改随机词条。`,
+          `Current #${mi+1}: ${moduleName(c.typeId)} / ${shapeName(c.shapeId)}. Nodes can be moved, rotated, or deleted, but random effects cannot be edited.`
+        );
       return;
     }
 
@@ -749,7 +847,10 @@
     setEffectOptions(manualEffect2, effects[1] || "", effects[0] || "");
 
     manualEditorHint.textContent =
-      `当前 #${mi+1}：${MODULES[c.typeId].name} / ${SHAPES[c.shapeId].name}。可改词条，也可拖动/移动/旋转；不能镜像翻转。`;
+      L(
+        `当前 #${mi+1}：${moduleName(c.typeId)} / ${shapeName(c.shapeId)}。可改词条，也可拖动/移动/旋转；不能镜像翻转。`,
+        `Current #${mi+1}: ${moduleName(c.typeId)} / ${shapeName(c.shapeId)}. Effects can be edited; the module can be dragged, moved, or rotated, but not mirrored.`
+      );
   }
 
   function resultSettings() {
@@ -766,9 +867,9 @@
       const occupied = result.modules.reduce((s,m)=>s+m.candidate.area,0);
       cards[index].innerHTML = `
         <div class="result-top">
-          <span class="result-rank">方案 ${index+1} · 手调</span>
+          <span class="result-rank">${L(`方案 ${index+1} · 手调`, `Solution ${index+1} · edited`)}</span>
           <span class="${ev.feasible ? "feasible" : "infeasible"}">
-            ${ev.feasible ? "✓ 满足硬目标" : "△ 最接近目标"}
+            ${ev.feasible ? L("✓ 满足硬目标","✓ Meets hard targets") : L("△ 最接近目标","△ Closest to targets")}
           </span>
         </div>
         <div class="stat-row">
@@ -778,16 +879,16 @@
           <div class="stat-chip"><span>POWER</span><strong>${ev.power}</strong></div>
         </div>
         <div class="result-foot">
-          <span>${result.modules.length} 个模组</span>
-          <span>${occupied}/35 格</span>
-          ${ev.unstableCount ? `<span>⚠ ${ev.unstableCount} 个不稳定词条模组</span>` : ""}
+          <span>${L(`${result.modules.length} 个模组`, `${result.modules.length} modules`)}</span>
+          <span>${L(`${occupied}/35 格`, `${occupied}/35 cells`)}</span>
+          ${ev.unstableCount ? `<span>⚠ ${L(`${ev.unstableCount} 个不稳定词条模组`, `${ev.unstableCount} unstable-effect modules`)}</span>` : ""}
         </div>`;
     }
   }
 
   function applyManualEffects() {
     if (selectedIndex < 0 || !lastResults[selectedIndex]) {
-      $("statusText").textContent = "请先选择一个方案。";
+      $("statusText").textContent = L("请先选择一个方案。","Select a solution first.");
       return;
     }
 
@@ -798,19 +899,22 @@
 
     const effects = [manualEffect1.value, manualEffect2.value].filter(Boolean);
     if (new Set(effects).size !== effects.length) {
-      manualEditorHint.textContent = "同一个词条不能重复选择。";
+      manualEditorHint.textContent = L("同一个词条不能重复选择。","The same effect cannot be selected twice.");
       return;
     }
     if (!compatibleEffects(effects)) {
       manualEditorHint.textContent =
-        "这个词条组合不合法：Learning Algorithm 只能与 Top/Side/Receiver 共存；Premium 与 Inferior 互斥。";
+        L(
+          "这个词条组合不合法：Learning Algorithm 只能与 Top/Side/Receiver 共存；Premium 与 Inferior 互斥。",
+          "Invalid effect combination: Learning Algorithm may only coexist with Top/Side/Receiver; Premium and Inferior are mutually exclusive."
+        );
       return;
     }
 
     const m = result.modules[mi];
     const candidate = fullCandidateFor(m.candidate.typeId,m.candidate.shapeId,effects);
     if (!candidate) {
-      manualEditorHint.textContent = "没有找到这个合法的模组词条组合。";
+      manualEditorHint.textContent = L("没有找到这个合法的模组词条组合。","Could not find this legal module/effect combination.");
       return;
     }
 
@@ -820,7 +924,10 @@
 
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
     $("statusText").textContent =
-      `已修改方案 ${selectedIndex+1} 的 #${mi+1} 词条，并重新计算。`;
+      L(
+        `已修改方案 ${selectedIndex+1} 的 #${mi+1} 词条，并重新计算。`,
+        `Updated effects on #${mi+1} in Solution ${selectedIndex+1} and recalculated.`
+      );
   }
 
   function restoreManualEffects() {
@@ -838,7 +945,10 @@
 
     delete result._originalEffects;
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
-    $("statusText").textContent = `方案 ${selectedIndex+1} 已恢复原词条（现有模组）。`;
+    $("statusText").textContent = L(
+      `方案 ${selectedIndex+1} 已恢复原词条（现有模组）。`,
+      `Restored original effects for existing modules in Solution ${selectedIndex+1}.`
+    );
   }
 
   function occupiedSet(result, ignoreIndex=-1) {
@@ -864,7 +974,7 @@
     return Number.isInteger(mi) ? mi : -1;
   }
 
-  function moveSelectedModule(dx,dy, source="按钮") {
+  function moveSelectedModule(dx,dy, source=L("按钮","buttons")) {
     if (selectedIndex < 0 || !lastResults[selectedIndex]) return false;
     const result = lastResults[selectedIndex];
     const mi = selectedModuleIndex();
@@ -873,14 +983,17 @@
     const m = result.modules[mi];
     const next = m.cells.map(([x,y]) => [x+dx,y+dy]);
     if (!cellsValid(result,mi,next)) {
-      manualEditorHint.textContent = "移动失败：目标位置越界或与其他模组重叠。";
+      manualEditorHint.textContent = L("移动失败：目标位置越界或与其他模组重叠。",
+        "Move failed: target position is out of bounds or overlaps another module.");
       return false;
     }
 
     ensureLayoutBackup(result);
     m.cells = next;
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
-    $("statusText").textContent = `已通过${source}移动 #${mi+1}。`;
+    $("statusText").textContent = IS_EN
+      ? `Moved #${mi+1} via ${source}.`
+      : `已通过${source}移动 #${mi+1}。`;
     return true;
   }
 
@@ -903,14 +1016,15 @@
 
     if (!cellsValid(result,mi,next)) {
       manualEditorHint.textContent =
-        "旋转失败：新形状越界或与其他模组重叠。";
+        L("旋转失败：新形状越界或与其他模组重叠。",
+          "Rotation failed: the new shape is out of bounds or overlaps another module.");
       return;
     }
 
     ensureLayoutBackup(result);
     m.cells = next;
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
-    $("statusText").textContent = `已旋转 #${mi+1} 并重新计算。`;
+    $("statusText").textContent = L(`已旋转 #${mi+1} 并重新计算。`, `Rotated #${mi+1} and recalculated.`);
   }
 
   function deleteSelectedModule() {
@@ -920,10 +1034,10 @@
     if (mi < 0 || !result.modules[mi]) return;
 
     ensureLayoutBackup(result);
-    const label = MODULES[result.modules[mi].candidate.typeId].name;
+    const label = moduleName(result.modules[mi].candidate.typeId);
     result.modules.splice(mi,1);
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
-    $("statusText").textContent = `已删除 #${mi+1} ${label}。`;
+    $("statusText").textContent = L(`已删除 #${mi+1} ${label}。`, `Deleted #${mi+1} ${label}.`);
   }
 
   function firstFreePlacement(result,candidate) {
@@ -943,7 +1057,7 @@
 
   function addManualModule() {
     if (selectedIndex < 0 || !lastResults[selectedIndex]) {
-      $("statusText").textContent = "请先选择一个方案，再添加模组。";
+      $("statusText").textContent = L("请先选择一个方案，再添加模组。","Select a solution before adding a module.");
       return;
     }
 
@@ -959,20 +1073,23 @@
     } else {
       effects = [addEffect1.value,addEffect2.value].filter(Boolean);
       if (new Set(effects).size !== effects.length || !compatibleEffects(effects)) {
-        manualEditorHint.textContent = "添加失败：词条组合不合法或重复。";
+        manualEditorHint.textContent = L("添加失败：词条组合不合法或重复。",
+          "Add failed: effect combination is invalid or duplicated.");
         return;
       }
     }
 
     const candidate = fullCandidateFor(typeId,shapeId,effects);
     if (!candidate) {
-      manualEditorHint.textContent = "添加失败：找不到这个模组/形状/词条组合。";
+      manualEditorHint.textContent = L("添加失败：找不到这个模组/形状/词条组合。",
+        "Add failed: this module/shape/effect combination could not be found.");
       return;
     }
 
     const placement = firstFreePlacement(result,candidate);
     if (!placement) {
-      manualEditorHint.textContent = "添加失败：当前 7×5 网格没有能放下该模组的位置。";
+      manualEditorHint.textContent = L("添加失败：当前 7×5 网格没有能放下该模组的位置。",
+        "Add failed: there is no legal position for this module in the current 7×5 grid.");
       return;
     }
 
@@ -987,7 +1104,10 @@
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
     manualModuleSelect.value = String(result.modules.length-1);
     loadSelectedModuleEffects();
-    $("statusText").textContent = `已添加 ${MODULES[typeId].name} 到第一个可用位置。`;
+    $("statusText").textContent = L(
+      `已添加 ${moduleName(typeId)} 到第一个可用位置。`,
+      `Added ${moduleName(typeId)} to the first available position.`
+    );
   }
 
   function restoreOriginalLayout() {
@@ -999,7 +1119,10 @@
     delete result._originalLayout;
     delete result._originalEffects;
     refreshAfterManualEdit(result,selectedIndex,resultSettings());
-    $("statusText").textContent = `方案 ${selectedIndex+1} 已恢复为最初计算结果。`;
+    $("statusText").textContent = L(
+      `方案 ${selectedIndex+1} 已恢复为最初计算结果。`,
+      `Solution ${selectedIndex+1} has been restored to the original computed layout.`
+    );
   }
 
   function startBoardDrag(event,moduleIndex,result,index,settings) {
@@ -1032,7 +1155,7 @@
 
       const dx = Math.round((ev.clientX-startX)/cellSize);
       const dy = Math.round((ev.clientY-startY)/cellSize);
-      if (dx || dy) moveSelectedModule(dx,dy,"拖动");
+      if (dx || dy) moveSelectedModule(dx,dy,L("拖动","drag"));
     };
 
     window.addEventListener("pointermove",onMove);
@@ -1044,7 +1167,7 @@
     Object.entries(MODULES).forEach(([id,m]) => {
       m.variants.forEach(([shape,stats]) => {
         rows.push(`<tr>
-          <td>${m.name}</td><td>${SHAPES[shape].name}</td>
+          <td>${moduleName(id)}</td><td>${shapeName(shape)}</td>
           <td>${fmtSigned(stats.p)}</td><td>${fmtSigned(stats.e)}</td><td>${fmtSigned(stats.q)}</td>
         </tr>`);
       });
@@ -1052,18 +1175,19 @@
 
     $("rulesDump").innerHTML = `
       <p>
-        Tier 3 固定为 7×5。普通模组有 0 / 1 / 2 个随机词条；节点只有 Support Node 固有词条。
-        Premium ×1.2；Inferior ×0.8；Overcharged ×2；Negative Feedback 自身 ×1.25；
-        Degrading 当前按全新 ×2；Learning 当前按满级“正属性 ×2”。
-        Top / Side 各 ×1.2；Receiver 每相邻一个不同 Node +10%；Support Node 获取每个不同相邻普通模组 20% 属性。
-        相邻按“模组实体”去重，角接触不算。
+        ${L(
+          "Tier 3 固定为 7×5。普通模组有 0 / 1 / 2 个随机词条；节点只有 Support Node 固有词条。Premium ×1.2；Inferior ×0.8；Overcharged ×2；Negative Feedback 自身 ×1.25；Degrading 当前按全新 ×2；Learning 当前按满级“正属性 ×2”。Top / Side 各 ×1.2；Receiver 每相邻一个不同 Node +10%；Support Node 获取每个不同相邻普通模组 20% 属性。相邻按“模组实体”去重，角接触不算。",
+          "Tier 3 is fixed at 7×5. Normal modules may have 0 / 1 / 2 random effects; Nodes only have the built-in Support Node effect. Premium ×1.2; Inferior ×0.8; Overcharged ×2; Negative Feedback self ×1.25; Degrading is currently evaluated fresh at ×2; Learning is evaluated at max growth with positive stats ×2. Top / Side each ×1.2; Receiver gains +10% per distinct adjacent Node; Support Node gains 20% of each distinct adjacent normal module. Adjacency is deduplicated by module entity; corner contact does not count."
+        )}
       </p>
       <p>
-        整数化采用 toward-zero（向 0 截断）。Negative Feedback 的邻居负属性与 Support Node
-        使用布局计算阶段的模组属性；如果后续实测发现游戏版本有不同顺序，可直接在 optimizer.js 中局部修改。
+        ${L(
+          "整数化采用 toward-zero（向 0 截断）。Negative Feedback 的邻居负属性与 Support Node 使用布局计算阶段的模组属性；如果后续实测发现游戏版本有不同顺序，可直接在 optimizer.js 中局部修改。",
+          "Integer conversion uses toward-zero truncation. Negative Feedback’s adjacent negative stats and Support Node use module stats from the layout-evaluation stage. If future in-game testing shows a different order, the rule can be adjusted locally in optimizer.js."
+        )}
       </p>
       <table>
-        <thead><tr><th>模组</th><th>形态</th><th>P</th><th>E</th><th>Q</th></tr></thead>
+        <thead><tr><th>${L("模组","Module")}</th><th>${L("形态","Shape")}</th><th>P</th><th>E</th><th>Q</th></tr></thead>
         <tbody>${rows.join("")}</tbody>
       </table>`;
   }
@@ -1089,29 +1213,40 @@
 
     const btn = $("optimizeBtn");
     btn.disabled = true;
-    btn.textContent = "正在计算…";
+    btn.textContent = L("正在计算…","Optimizing…");
     $("progressWrap").classList.remove("hidden");
     $("progressBar").style.width = "0%";
     $("progressPct").textContent = "0%";
-    $("progressLabel").textContent = "生成候选并开始搜索…";
+    $("progressLabel").textContent = L("生成候选并开始搜索…","Generating candidates and starting search…");
     $("statusText").textContent = "";
 
     try {
+      let lastProgressMeta = {};
       const results = await optimize(settings,(fraction,best,meta={})=>{
+        lastProgressMeta = meta || {};
         const pct = Math.round(fraction*100);
         $("progressBar").style.width = pct+"%";
         $("progressPct").textContent = pct+"%";
 
         if (meta.algorithm === "beam" && meta.depth) {
           const bestText = best
-            ? ` · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
+            ? L(
+                ` · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`,
+                ` · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
+              )
             : "";
           $("progressLabel").textContent =
-            `组合搜索 第 ${meta.depth}/${meta.maxDepth} 层 · 前沿 ${meta.frontier} · 候选 ${meta.candidatePool}${bestText}`;
+            L(
+              `组合搜索 第 ${meta.depth}/${meta.maxDepth} 层 · 前沿 ${meta.frontier} · 候选 ${meta.candidatePool}${bestText}`,
+              `Beam search depth ${meta.depth}/${meta.maxDepth} · frontier ${meta.frontier} · candidates ${meta.candidatePool}${bestText}`
+            );
         } else {
           $("progressLabel").textContent = best
-            ? `搜索中 · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
-            : "搜索中…";
+            ? L(
+                `搜索中 · 当前最好 P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`,
+                `Searching · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
+              )
+            : L("搜索中…","Searching…");
         }
       });
 
@@ -1120,22 +1255,53 @@
       const hasHardTargets =
         ["p","e","q"].some(k => settings.targets[k].mode === "min") ||
         settings.usePowerTarget;
+
+      // A Beam Search can finish early when minimum-module mode finds the first
+      // feasible depth. The computation is complete even if depth/maxDepth was
+      // e.g. 7/12, so always finish the UI progress at 100%.
+      $("progressBar").style.width = "100%";
+      $("progressPct").textContent = "100%";
+
+      if (lastProgressMeta.algorithm === "beam" &&
+          settings.minimizeModules &&
+          feasible > 0 &&
+          results[0]) {
+        const n = results[0].modules.length;
+        $("progressLabel").textContent = L(
+          `完成 · 在 ${n} 个模组层找到可行解，后续更深层无需搜索`,
+          `Complete · feasible solution found at ${n} modules; deeper levels were not needed`
+        );
+      } else {
+        $("progressLabel").textContent = L("搜索完成","Search complete");
+      }
       const minMode = settings.minimizeModules
-        ? " 已启用“尽量少使用模组”：满足硬目标后优先减少模组数量。"
+        ? L(
+            " 已启用“尽量少使用模组”：满足硬目标后优先减少模组数量。",
+            " Minimize module count is enabled: after hard targets are met, fewer modules are preferred."
+          )
         : "";
       const algoText = hasHardTargets
-        ? " 本次使用组合 Beam Search：保留多条 P/E/Q 权衡路径并枚举合法摆位。"
-        : " 本次使用多起点随机 + 局部搜索。";
+        ? L(
+            " 本次使用组合 Beam Search：保留多条 P/E/Q 权衡路径并枚举合法摆位。",
+            " This run used Beam Search, preserving multiple P/E/Q trade-off paths and enumerating legal placements."
+          )
+        : L(" 本次使用多起点随机 + 局部搜索。"," This run used multi-start stochastic search plus local search.");
       $("statusText").textContent =
-        `完成：输出 ${results.length} 个方案，其中 ${feasible} 个满足全部硬目标。` +
+        L(
+          `完成：输出 ${results.length} 个方案，其中 ${feasible} 个满足全部硬目标。`,
+          `Completed: ${results.length} solutions returned; ${feasible} meet all hard targets.`
+        ) +
         minMode + algoText +
-        ` 结果仍属于高质量近似最优解，不声称数学上证明全局最优。`;
+        L(
+          " 结果仍属于高质量近似最优解，不声称数学上证明全局最优。",
+          " Results are high-quality approximate optima, not a mathematical proof of global optimality."
+        );
     } catch (e) {
       console.error(e);
-      $("statusText").textContent = "计算出现错误：" + e.message;
+      $("statusText").textContent = L("计算出现错误：","Optimization error: ") + e.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = "开始计算";
+      btn.textContent = L("开始计算","Optimize");
     }
   });
 
@@ -1173,9 +1339,17 @@
   clearSavedBtn.addEventListener("click", () => {
     const items = getSavedSolutions();
     if (!items.length) return;
-    if (!confirm(`确定删除全部 ${items.length} 个已保存方案吗？`)) return;
+    if (!confirm(L(
+      `确定删除全部 ${items.length} 个已保存方案吗？`,
+      `Delete all ${items.length} saved solutions?`
+    ))) return;
     localStorage.removeItem(SAVED_KEY);
     renderSavedSolutions();
+  });
+
+  $("languageSelect").addEventListener("change", () => {
+    const target = $("languageSelect").value === "en" ? "index-en.html" : "index.html";
+    window.location.href = target;
   });
 
   renderModuleChecks();

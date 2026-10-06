@@ -643,3 +643,29 @@ h2 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
   background:rgba(201,255,70,.055);
   border-color:rgba(201,255,70,.22);
 }
+
+
+.language-bar {
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+  margin-bottom:12px;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.language-select {
+  min-height:34px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel);
+  color:var(--text);
+  padding:5px 9px;
+  outline:none;
+}
+
+.language-select:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(201,255,70,.08);
+}

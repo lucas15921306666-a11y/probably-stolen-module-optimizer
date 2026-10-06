@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Probably Stolen — 模组最优解计算器</title>
+  <title>Probably Stolen — Module Optimizer</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,16 +12,16 @@
     <div class="language-bar">
       <label for="languageSelect">语言 / Language</label>
       <select id="languageSelect" class="language-select">
-        <option value="zh" selected>中文</option>
-        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="en" selected>English</option>
       </select>
     </div>
     <header class="hero">
       <div>
         <p class="eyebrow">PROBABLY STOLEN</p>
-        <h1>模组最优解计算器</h1>
+        <h1>Module Optimizer</h1>
         <p class="hero-copy">
-          固定按 Tier 3（7×5）模组舱计算。假设所有启用的正常模组都可获得，不扫描库存。
+          Uses a fixed Tier 3 (7×5) module bay. Assumes every enabled normally obtainable module is available; inventory is not scanned.
         </p>
       </div>
       <div class="hero-badge">v1.2</div>
@@ -31,23 +31,23 @@
       <div class="panel-heading">
         <div>
           <span class="step">01</span>
-          <h2>目标数值</h2>
+          <h2>Target Stats</h2>
         </div>
-        <p>每项可以设为“不考虑 / 至少 / 最大化”。</p>
+        <p>Each stat can be set to Ignore / At least / Maximize.</p>
       </div>
 
       <div class="rule-note free-axis-note">
-        <strong>“不考虑” = 完全自由：</strong>
-        该数值不设下限、不设上限，也不会被算法拉向 0。只要能改善你选择的目标，它可以变成很大的负数。
+        <strong>“Ignore” = completely free:</strong>
+        The stat has no lower or upper bound and is not pulled toward 0. It may become strongly negative if that improves the goals you selected.
       </div>
 
       <div class="target-grid">
         <div class="target-card">
           <div class="metric-title"><span class="metric-dot metric-p"></span>Performance</div>
           <select id="pMode" class="control mode-select">
-            <option value="ignore">不考虑</option>
-            <option value="min">至少</option>
-            <option value="max" selected>最大化</option>
+            <option value="ignore">Ignore</option>
+            <option value="min">At least</option>
+            <option value="max" selected>Maximize</option>
           </select>
           <input id="pTarget" class="control number-control" type="number" value="100" step="1" />
         </div>
@@ -55,9 +55,9 @@
         <div class="target-card">
           <div class="metric-title"><span class="metric-dot metric-e"></span>Efficiency</div>
           <select id="eMode" class="control mode-select">
-            <option value="ignore">不考虑</option>
-            <option value="min" selected>至少</option>
-            <option value="max">最大化</option>
+            <option value="ignore">Ignore</option>
+            <option value="min" selected>At least</option>
+            <option value="max">Maximize</option>
           </select>
           <input id="eTarget" class="control number-control" type="number" value="80" step="1" />
         </div>
@@ -65,41 +65,40 @@
         <div class="target-card">
           <div class="metric-title"><span class="metric-dot metric-q"></span>Quality</div>
           <select id="qMode" class="control mode-select">
-            <option value="ignore" selected>不考虑</option>
-            <option value="min">至少</option>
-            <option value="max">最大化</option>
+            <option value="ignore" selected>Ignore</option>
+            <option value="min">At least</option>
+            <option value="max">Maximize</option>
           </select>
           <input id="qTarget" class="control number-control" type="number" value="50" step="1" />
         </div>
       </div>
 
       <details class="advanced">
-        <summary>耗电目标（实验性）</summary>
+        <summary>Power Target (Experimental)</summary>
         <div class="power-grid">
           <label>
-            <span>机器基础耗电</span>
+            <span>Base machine power</span>
             <input id="basePower" class="control number-control" type="number" min="0" value="20" step="1" />
           </label>
           <label>
-            <span>目标耗电 ≤</span>
+            <span>Target power ≤</span>
             <input id="powerTarget" class="control number-control" type="number" min="0" value="4" step="1" />
           </label>
           <label class="check-row compact">
             <input id="usePowerTarget" type="checkbox" />
-            <span>将耗电作为硬目标</span>
+            <span>Use power as a hard target</span>
           </label>
           <label>
-            <span>整数化方式</span>
+            <span>Rounding method</span>
             <select id="powerRounding" class="control">
-              <option value="ceil" selected>向上取整（默认）</option>
-              <option value="round">四舍五入</option>
-              <option value="floor">向下取整</option>
+              <option value="ceil" selected>Ceiling (default)</option>
+              <option value="round">Round</option>
+              <option value="floor">Floor</option>
             </select>
           </label>
         </div>
         <p class="microcopy">
-          当前公式：基础耗电 × (1 − Efficiency / 100)。由于游戏的最终整数化细节仍可能随版本变化，
-          这里允许手动选择取整方式。
+          Current formula: base power × (1 − Efficiency / 100). Because the game’s final rounding behavior may vary by version, you can choose the rounding method manually.
         </p>
       </details>
     </section>
@@ -108,11 +107,11 @@
       <div class="panel-heading">
         <div>
           <span class="step">02</span>
-          <h2>参与计算的模组</h2>
+          <h2>Modules Included</h2>
         </div>
         <div class="inline-actions">
-          <button id="allModules" class="text-button" type="button">全选</button>
-          <button id="noModules" class="text-button" type="button">清空</button>
+          <button id="allModules" class="text-button" type="button">Select all</button>
+          <button id="noModules" class="text-button" type="button">Clear</button>
         </div>
       </div>
       <div id="moduleChecks" class="check-grid"></div>
@@ -122,18 +121,17 @@
       <div class="panel-heading">
         <div>
           <span class="step">03</span>
-          <h2>允许的词条</h2>
+          <h2>Allowed Effects</h2>
         </div>
         <div class="inline-actions">
-          <button id="allEffects" class="text-button" type="button">全选</button>
-          <button id="safeEffects" class="text-button" type="button">稳妥组合</button>
+          <button id="allEffects" class="text-button" type="button">Select all</button>
+          <button id="safeEffects" class="text-button" type="button">Stable set</button>
         </div>
       </div>
       <div id="effectChecks" class="check-grid"></div>
       <div class="rule-note">
-        <strong>已写入冲突规则：</strong>
-        Learning Algorithm 只可与 Top Mount / Side Mount / Receiver 共存；
-        Premium 与 Inferior 互斥。普通模组允许 0 / 1 / 2 个词条。
+        <strong>Compatibility rules:</strong>
+        Learning Algorithm may only coexist with Top Mount / Side Mount / Receiver; Premium and Inferior are mutually exclusive. Normal modules may have 0 / 1 / 2 effects.
       </div>
     </section>
 
@@ -141,27 +139,27 @@
       <div class="panel-heading">
         <div>
           <span class="step">04</span>
-          <h2>搜索设置</h2>
+          <h2>Search Settings</h2>
         </div>
-        <p>这是带邻接关系的二维组合优化；会根据目标自动选择 Beam Search 或多起点随机 + 局部搜索。</p>
+        <p>This is a 2D combinatorial optimization problem with adjacency effects; the optimizer automatically chooses Beam Search or multi-start stochastic + local search based on the target type.</p>
       </div>
 
       <div class="search-settings">
         <label>
-          <span>搜索强度</span>
+          <span>Search intensity</span>
           <select id="searchQuality" class="control">
-            <option value="fast">快速</option>
-            <option value="balanced" selected>平衡</option>
-            <option value="deep">深度</option>
+            <option value="fast">Fast</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="deep">Deep</option>
           </select>
         </label>
         <label>
-          <span>运算数量（独立搜索次数）</span>
+          <span>Compute budget</span>
           <input id="computeCount" class="control number-control" type="number"
                  value="500" min="20" max="10000" step="20" />
         </label>
         <label>
-          <span>输出结果数</span>
+          <span>Number of results</span>
           <input id="resultCount" class="control number-control" type="number" value="8" min="1" max="20" />
         </label>
       </div>
@@ -169,26 +167,26 @@
       <label class="check-row minimize-option">
         <input id="minimizeModules" type="checkbox" />
         <span>
-          尽量少使用模组
+          Minimize module count
           <small class="check-meta">
-            满足硬目标后，模组数量优先级最高。被设为“不考虑”的属性可以为了少用模组变成更大的负数。
+            After hard targets are met, fewer modules have highest priority. Ignored stats may become more negative to reduce module count.
           </small>
         </span>
       </label>
 
       <p class="microcopy">
-        有“至少”或耗电硬目标时，会自动使用组合 Beam Search：保留多条不同 P/E/Q 权衡路线，并枚举候选的合法位置。
-        “运算数量”会扩大搜索前沿与候选覆盖；只有纯“最大化”任务仍使用多次随机搜索。
-        “尽量少使用模组”需要至少一个硬目标才有意义。
+        With At-least or power hard targets, the optimizer automatically uses Beam Search, preserving multiple P/E/Q trade-off paths and enumerating legal placements.
+        Compute budget expands the search frontier and candidate coverage; pure Maximize tasks still use multi-start stochastic search.
+        Minimize module count requires at least one hard target.
       </p>
 
       <button id="optimizeBtn" class="primary-button" type="button">
-        开始计算
+        Optimize
       </button>
 
       <div id="progressWrap" class="progress-wrap hidden">
         <div class="progress-line">
-          <span id="progressLabel">准备搜索…</span>
+          <span id="progressLabel">Preparing search…</span>
           <span id="progressPct">0%</span>
         </div>
         <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
@@ -200,12 +198,12 @@
       <div class="panel-heading">
         <div>
           <span class="step">05</span>
-          <h2>结果</h2>
+          <h2>Results</h2>
         </div>
-        <p>点击任意方案，在下方查看 7×5 布局与逐模组数据。</p>
+        <p>Click any solution to inspect its 7×5 layout and per-module data below.</p>
       </div>
       <div id="resultsList" class="results-list empty-state">
-        还没有结果。设置目标后点击“开始计算”。
+        No results yet. Set your targets and click Optimize.
       </div>
     </section>
 
@@ -214,25 +212,24 @@
       <div class="panel-heading">
         <div>
           <span class="step">06</span>
-          <h2>保存结果</h2>
+          <h2>Saved Results</h2>
         </div>
-        <p>保存当前选中的方案到浏览器，刷新或下次打开仍会保留。</p>
+        <p>Save the selected solution in this browser so it remains after refresh or reopening.</p>
       </div>
 
       <div class="save-toolbar">
         <input id="saveName" class="control" type="text" maxlength="60"
-               placeholder="方案名称（可选，例如：解密机 ≤4 电）" />
-        <button id="saveCurrentBtn" class="secondary-button" type="button">保存当前方案</button>
-        <button id="exportSavedBtn" class="secondary-button" type="button">导出 JSON</button>
-        <label class="secondary-button import-button" for="importSavedFile">导入 JSON</label>
+               placeholder="Solution name (optional, e.g. Desequencer ≤4 power)" />
+        <button id="saveCurrentBtn" class="secondary-button" type="button">Save current solution</button>
+        <button id="exportSavedBtn" class="secondary-button" type="button">Export JSON</button>
+        <label class="secondary-button import-button" for="importSavedFile">Import JSON</label>
         <input id="importSavedFile" type="file" accept=".json,application/json" hidden />
-        <button id="clearSavedBtn" class="text-button danger-text" type="button">清空全部</button>
+        <button id="clearSavedBtn" class="text-button danger-text" type="button">Clear all</button>
       </div>
 
-      <div id="savedList" class="saved-list empty-state">还没有保存的方案。</div>
+      <div id="savedList" class="saved-list empty-state">No saved solutions yet.</div>
       <p class="microcopy">
-        保存内容包括布局、模组/形态/词条、P/E/Q、耗电估算，以及保存时的目标设置。
-        数据只保存在当前浏览器的 localStorage 中。
+        Saved data includes layout, module/shape/effects, P/E/Q, estimated power, and the target settings at save time. Data is stored only in this browser’s localStorage.
       </p>
     </section>
 
@@ -240,42 +237,42 @@
       <div class="panel-heading">
         <div>
           <span class="step">07</span>
-          <h2>布局预览</h2>
+          <h2>Layout Preview</h2>
         </div>
-        <p id="previewTitle">未选择方案</p>
+        <p id="previewTitle">No solution selected</p>
       </div>
 
 
       <div class="manual-editor">
         <div class="manual-editor-head">
           <div>
-            <strong>手动调整布局</strong>
-            <span>可改词条、拖动、移动、旋转、删除与添加模组；模组只能旋转，不能镜像翻转。每次操作后都会实时重算。</span>
+            <strong>Manual Layout Editing</strong>
+            <span>Edit effects, drag, move, rotate, delete, and add modules. Modules can rotate but cannot be mirrored. Every edit recalculates immediately.</span>
           </div>
           <div class="inline-actions">
-            <button id="restoreManualBtn" class="text-button" type="button">恢复原词条</button>
-            <button id="restoreLayoutBtn" class="text-button" type="button">恢复原布局</button>
+            <button id="restoreManualBtn" class="text-button" type="button">Restore original effects</button>
+            <button id="restoreLayoutBtn" class="text-button" type="button">Restore original layout</button>
           </div>
         </div>
 
         <div class="manual-editor-grid">
           <label>
-            <span>选择模组</span>
+            <span>Select module</span>
             <select id="manualModuleSelect" class="control"></select>
           </label>
           <label>
-            <span>词条 1</span>
+            <span>Effect 1</span>
             <select id="manualEffect1" class="control"></select>
           </label>
           <label>
-            <span>词条 2</span>
+            <span>Effect 2</span>
             <select id="manualEffect2" class="control"></select>
           </label>
-          <button id="applyManualEffectsBtn" class="secondary-button" type="button">应用词条</button>
+          <button id="applyManualEffectsBtn" class="secondary-button" type="button">Apply effects</button>
         </div>
 
         <div class="layout-controls">
-          <div class="move-pad" aria-label="移动模组">
+          <div class="move-pad" aria-label="Move module">
             <span></span>
             <button id="moveUpBtn" class="mini-button" type="button">↑</button>
             <span></span>
@@ -283,36 +280,36 @@
             <button id="moveDownBtn" class="mini-button" type="button">↓</button>
             <button id="moveRightBtn" class="mini-button" type="button">→</button>
           </div>
-          <button id="rotateBtn" class="mini-button" type="button">旋转 90°</button>
-          <button id="deleteModuleBtn" class="mini-button danger" type="button">删除模组</button>
-          <span class="drag-hint">也可以直接拖动预览里的模组。</span>
+          <button id="rotateBtn" class="mini-button" type="button">Rotate 90°</button>
+          <button id="deleteModuleBtn" class="mini-button danger" type="button">Delete module</button>
+          <span class="drag-hint">You can also drag modules directly in the preview.</span>
         </div>
 
         <div class="add-module-panel">
-          <strong>添加模组</strong>
+          <strong>Add Module</strong>
           <div class="add-module-grid">
             <label>
-              <span>模组类型</span>
+              <span>Module type</span>
               <select id="addModuleType" class="control"></select>
             </label>
             <label>
-              <span>形状</span>
+              <span>Shape</span>
               <select id="addModuleShape" class="control"></select>
             </label>
             <label>
-              <span>词条 1</span>
+              <span>Effect 1</span>
               <select id="addEffect1" class="control"></select>
             </label>
             <label>
-              <span>词条 2</span>
+              <span>Effect 2</span>
               <select id="addEffect2" class="control"></select>
             </label>
-            <button id="addModuleBtn" class="secondary-button" type="button">添加到第一个可用位置</button>
+            <button id="addModuleBtn" class="secondary-button" type="button">Add to first available position</button>
           </div>
         </div>
 
         <p id="manualEditorHint" class="microcopy">
-          Node 只有 Support Node 固有词条，不能手动修改。拖动或旋转如果发生重叠/越界会自动取消；反L / P 形会保持原本手性，不会镜像。
+          Nodes only have the built-in Support Node effect. Moves or rotations that overlap or go out of bounds are cancelled. Reverse-L / P shapes preserve handedness and are never mirrored.
         </p>
       </div>
 
@@ -328,7 +325,7 @@
           </div>
         </div>
         <div id="solutionSummary" class="solution-summary">
-          选择一个结果后显示详细数值。
+          Select a result to view detailed stats.
         </div>
       </div>
 
@@ -336,7 +333,7 @@
     </section>
 
     <details class="panel rules-panel">
-      <summary>当前写入计算器的规则 / 数据</summary>
+      <summary>Current Rules / Data</summary>
       <div id="rulesDump" class="rules-dump"></div>
     </details>
   </main>

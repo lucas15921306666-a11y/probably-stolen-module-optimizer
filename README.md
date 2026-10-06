@@ -250,3 +250,15 @@ v0.5 开始加入“手动调整布局”功能，第一阶段只允许调整词
 - 被“不考虑”的属性仍完全自由，不参与评分。
 - 纯“最大化”任务继续使用旧的多起点随机 + 局部搜索，以保持速度。
 - Beam Search 仍有前沿剪枝，因此是高质量近似优化，不是数学证明的全局精确求解。
+
+
+## v1.2 — Progress + English UI
+
+- Fixed Beam Search progress display:
+  - Beam Search may stop early when “Minimize module count” finds the first feasible module-count depth.
+  - The progress bar now always finishes at 100% once computation is actually complete.
+  - Early completion explicitly reports the module-count depth where a feasible solution was found.
+- Added a language selector at the very top of the page.
+- Added a complete English UI at `index-en.html`.
+- Chinese and English pages share the same optimizer, browser localStorage saves, JSON import/export, and manual layout editor.
+- Dynamic content is localized too: module names, shapes, effects, status messages, result cards, saved solutions, manual editing, and rules.
