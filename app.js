@@ -1228,6 +1228,13 @@
         $("progressBar").style.width = pct+"%";
         $("progressPct").textContent = pct+"%";
 
+        const trackPrefix = meta.trackCount > 1
+          ? L(
+              `轨道 ${meta.trackIndex}/${meta.trackCount} ${meta.trackLabel} · `,
+              `Track ${meta.trackIndex}/${meta.trackCount} ${meta.trackLabel} · `
+            )
+          : "";
+
         if (meta.algorithm === "beam" && meta.phase === "sameDepthBeam") {
           const bestText = best
             ? L(
@@ -1235,7 +1242,7 @@
                 ` · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
               )
             : "";
-          $("progressLabel").textContent = L(
+          $("progressLabel").textContent = trackPrefix + L(
             `同层扩大搜索 ${meta.depth}/${meta.targetDepth} · 前沿 ${meta.frontier} · 候选 ${meta.candidatePool}${bestText}`,
             `Same-depth widened search ${meta.depth}/${meta.targetDepth} · frontier ${meta.frontier} · candidates ${meta.candidatePool}${bestText}`
           );
@@ -1246,7 +1253,7 @@
                 ` · best P ${fmtSigned(best.evaluation.total.p)} / E ${fmtSigned(best.evaluation.total.e)} / Q ${fmtSigned(best.evaluation.total.q)}`
               )
             : "";
-          $("progressLabel").textContent = L(
+          $("progressLabel").textContent = trackPrefix + L(
             `同层精修 · 种子 ${meta.seed}/${meta.seeds} · 第 ${meta.round}/${meta.rounds} 轮${bestText}`,
             `Same-depth refinement · seed ${meta.seed}/${meta.seeds} · round ${meta.round}/${meta.rounds}${bestText}`
           );
@@ -1258,7 +1265,7 @@
               )
             : "";
           $("progressLabel").textContent =
-            L(
+            trackPrefix + L(
               `组合搜索 第 ${meta.depth}/${meta.maxDepth} 层 · 前沿 ${meta.frontier} · 候选 ${meta.candidatePool}${bestText}`,
               `Beam search depth ${meta.depth}/${meta.maxDepth} · frontier ${meta.frontier} · candidates ${meta.candidatePool}${bestText}`
             );
@@ -1308,12 +1315,20 @@
             " This run used a three-stage search: discover the minimum-module depth → widened same-depth Beam Search → fixed-count all-position replacement/reposition refinement."
           )
         : L(" 本次使用多起点随机 + 局部搜索。"," This run used multi-start stochastic search plus local search.");
+
+      const protectedTrackText = hasHardTargets &&
+        (settings.enabledEffects.includes("overcharged") || settings.enabledEffects.includes("degrading"))
+        ? L(
+            " 高影响不稳定词条会额外运行“不含该词条”的保护轨道，避免勾选新词条反而丢掉原本更好的解。",
+            " High-impact unstable effects also run protected companion tracks without that effect, so enabling a new effect cannot discard a previously better solution."
+          )
+        : "";
       $("statusText").textContent =
         L(
           `完成：输出 ${results.length} 个方案，其中 ${feasible} 个满足全部硬目标。`,
           `Completed: ${results.length} solutions returned; ${feasible} meet all hard targets.`
         ) +
-        minMode + algoText +
+        minMode + algoText + protectedTrackText +
         L(
           " 结果仍属于高质量近似最优解，不声称数学上证明全局最优。",
           " Results are high-quality approximate optima, not a mathematical proof of global optimality."

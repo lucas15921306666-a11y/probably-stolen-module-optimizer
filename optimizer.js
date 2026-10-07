@@ -977,7 +977,7 @@ window.PS_OPT = (() => {
     return archive.sort((a,b)=>b.evaluation.score-a.evaluation.score);
   }
 
-  async function beamOptimize(settings,candidates,onProgress=()=>{}) {
+  async function beamOptimizeSingle(settings,candidates,onProgress=()=>{}) {
     candidates.forEach(c => c.staticUtility = staticUtility(c,settings));
     const cfg = beamConfig(settings);
     const pool = beamCandidatePool(candidates,settings,cfg);
@@ -1144,6 +1144,104 @@ window.PS_OPT = (() => {
     }
 
     return final;
+  }
+
+
+  function mergeTrackResults(trackResults,settings) {
+    const merged = [];
+    const seen = new Set();
+
+    for (const arr of trackResults) {
+      for (const r of arr) {
+        if (!r) continue;
+        if (seen.has(r.signature)) continue;
+        seen.add(r.signature);
+        merged.push(r);
+      }
+    }
+
+    merged.sort((a,b)=>b.evaluation.score-a.evaluation.score);
+
+    // Keep composition diversity first. If there are fewer distinct high-quality
+    // compositions than the requested count, return fewer instead of padding
+    // with effectively duplicate layouts.
+    const final = [];
+    const seenComp = new Set();
+
+    for (const r of merged) {
+      if (seenComp.has(r.composition)) continue;
+      seenComp.add(r.composition);
+      final.push(r);
+      if (final.length >= settings.resultCount) break;
+    }
+
+    return final;
+  }
+
+  function makeEffectTrackCandidates(candidates,effectId) {
+    return candidates.filter(c => !c.effects.includes(effectId));
+  }
+
+  async function beamOptimize(settings,candidates,onProgress=()=>{}) {
+    // Heuristic searches are not naturally monotonic: adding a new effect can
+    // crowd the fixed beam/candidate pool and accidentally make the result worse.
+    //
+    // To prevent this for the two unstable/high-impact effects, always search
+    // companion tracks that explicitly exclude them. The old solution space is
+    // therefore preserved when Overcharged or Degrading is enabled.
+    const tracks = [{
+      id: "full",
+      label: "Full",
+      candidates
+    }];
+
+    if (settings.enabledEffects.includes("overcharged")) {
+      tracks.push({
+        id: "noOvercharged",
+        label: "No Overcharged",
+        candidates: makeEffectTrackCandidates(candidates,"overcharged")
+      });
+    }
+
+    if (settings.enabledEffects.includes("degrading")) {
+      tracks.push({
+        id: "noDegrading",
+        label: "No Degrading",
+        candidates: makeEffectTrackCandidates(candidates,"degrading")
+      });
+    }
+
+    const results = [];
+    const totalTracks = tracks.length;
+
+    for (let ti=0; ti<tracks.length; ti++) {
+      const track = tracks[ti];
+
+      const trackSettings = {
+        ...settings,
+        // Keep enough alternatives from each track for the final merge.
+        resultCount: Math.max(settings.resultCount,12)
+      };
+
+      const trackResults = await beamOptimizeSingle(
+        trackSettings,
+        track.candidates,
+        (fraction,best,meta={}) => {
+          const overall = (ti + fraction) / totalTracks;
+          onProgress(overall,best,{
+            ...meta,
+            track: track.id,
+            trackLabel: track.label,
+            trackIndex: ti+1,
+            trackCount: totalTracks
+          });
+        }
+      );
+
+      results.push(trackResults);
+    }
+
+    return mergeTrackResults(results,settings);
   }
 
   const QUALITY = {

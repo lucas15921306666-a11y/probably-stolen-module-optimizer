@@ -282,3 +282,19 @@ Hard-target search now has three phases:
    - Repeats for multiple rounds depending on search intensity / compute budget.
 
 This greatly improves the chance of finding a stronger layout at the same module count. It is still not a mathematical proof of the global optimum because Beam Search and the candidate pool are pruned. An exact proof would require a full exact solver / branch-and-bound / CP-SAT mode.
+
+
+## v1.4 — Monotonic effect tracks + less fake convergence
+
+The screenshots exposed a heuristic-search bug: enabling Overcharged expanded the candidate set, but the fixed candidate/beam limits could crowd out the previously better non-Overcharged search path. That meant a superset of legal modules could accidentally return a worse best result.
+
+v1.4 fixes this for the two high-impact unstable effects:
+
+- Full candidate track is still searched.
+- If Overcharged is enabled, an additional **No Overcharged** companion track is searched.
+- If Degrading is enabled, an additional **No Degrading** companion track is searched.
+- Results from all tracks are merged by the exact same scoring function.
+- Therefore enabling Overcharged / Degrading cannot remove the best solution that the same optimizer would have found without that effect.
+- The final result list no longer pads with effectively duplicate compositions just to hit the requested count. If fewer genuinely different high-quality compositions are available, fewer results may be shown.
+
+This is still heuristic optimization, not a mathematical global-optimum proof.
